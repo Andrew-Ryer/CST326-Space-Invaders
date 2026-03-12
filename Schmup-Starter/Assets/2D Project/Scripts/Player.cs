@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 // Player keyboard movement (Clamped to edges)
 // Hold starting position for a reset
@@ -19,19 +21,32 @@ public class Player : MonoBehaviour
     public static event Action onPlayerDied;
     private Animator animator;
     private Vector3 startPosition;
+    
+    
+    
+    public AudioClip shotSound;
+    public AudioClip deathSound;
+    
+    AudioSource audioSource;
 
     void Start()
     {
+        // Sound
+        audioSource = GetComponent<AudioSource>();
+        
+        // Animation
         animator = GetComponent<Animator>();
         startPosition = transform.position;
-        // todo - get and cache animator
     }
     
     void Update()
     {
         if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
+            // Play shot audio
+            audioSource.PlayOneShot(shotSound);
             GameObject shot = Instantiate(bulletPrefab, shootOffsetTransform.position, Quaternion.identity);
+            
             Debug.Log("Bang!");
 
             // todo - destroy the bullet after x seconds
@@ -64,19 +79,32 @@ public class Player : MonoBehaviour
     
     public void ResetPlayer()
     {
+        SceneManager.LoadScene("2D Project/Scenes/Credits");
         transform.position = startPosition;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
         Debug.Log(other.name);
+        // Play death audio
+        audioSource.PlayOneShot(deathSound);
         if (other.gameObject.layer == LayerMask.NameToLayer("Ebullet")) 
         { 
             Destroy(other.gameObject);
-            ResetPlayer();
-            onPlayerDied?.Invoke(); 
+            
+            onPlayerDied?.Invoke();
+            animator.SetTrigger("isDead");
+            StartCoroutine(ResetAfterDelay(2f));
+
         }
         
+    }
+    
+    // Trying to delay ResetPlayer So Death animation can Play
+    private IEnumerator ResetAfterDelay(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        ResetPlayer();
     }
 
 }

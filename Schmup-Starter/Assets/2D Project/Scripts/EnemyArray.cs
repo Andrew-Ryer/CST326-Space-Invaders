@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Create a grid of 5 rows and 11 columns to place enemy prefabs
 // Control enemy movement logic 
@@ -28,12 +29,31 @@ public class EnemyArray : MonoBehaviour
     [Header("Missiles")]
     public GameObject missilePrefab;
     public float missileSpawnRate = 1f;
-
+    
+    private Animator animator;
+    public AudioClip shotSound;
+    AudioSource audioSource;
+    public AudioClip deathSound;
+    
     private void Awake()
-    {
+    { 
+        audioSource = GetComponent<AudioSource>();
+        
         initialPosition = transform.position;
 
         CreateInvaderGrid();
+    }
+    
+    void OnEnable()
+    {
+        Enemy.onEnemyDied += onEnemyDied;
+        Player.onPlayerDied += ResetInvaders;
+    }
+
+    void OnDisable()
+    {
+        Enemy.onEnemyDied -= onEnemyDied;
+        Player.onPlayerDied -= ResetInvaders;
     }
 
     private void CreateInvaderGrid()
@@ -100,6 +120,11 @@ public class EnemyArray : MonoBehaviour
             // alive (the more invaders alive the lower the chance)
             if (Random.value < (1f / amountAlive))
             {
+                Invader inv = invader.GetComponent<Invader>();
+                //animator.SetTrigger("Shoot");
+                inv.ShootAnimation();
+                
+                audioSource.PlayOneShot(shotSound);
                 GameObject shot = Instantiate(missilePrefab, invader.position, Quaternion.identity);
                 break;
             }
@@ -124,10 +149,17 @@ public class EnemyArray : MonoBehaviour
         // Animate + move (keep your existing code below)
         foreach (Transform t in transform)
         {
-            if (!t.gameObject.activeInHierarchy) continue;
+            if (!t.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
 
             Invader inv = t.GetComponent<Invader>();
-            if (inv != null) inv.StepAnimation();
+            if (inv != null)
+            {
+                // New Animate
+                inv.StepAnimation();
+            }
         }
 
         float stepDistance = stepSize; // keep distance consistent (classic feel)
@@ -163,6 +195,12 @@ public class EnemyArray : MonoBehaviour
 
         // discrete step move
         transform.position += direction * stepDistance;
+
+        if (amountAlive == 0)
+        {
+            Debug.Log("You Win!");
+            SceneManager.LoadScene("2D Project/Scenes/Credits");
+        }
     }
 
     private void AdvanceRow()
@@ -174,11 +212,6 @@ public class EnemyArray : MonoBehaviour
         Vector3 position = transform.position;
         position.y -= 1f;
         transform.position = position;
-    }
-    
-    void OnEnable()
-    {
-        Player.onPlayerDied += ResetInvaders;
     }
 
     void ResetInvaders()
@@ -203,5 +236,10 @@ public class EnemyArray : MonoBehaviour
         }
 
         return count;
+    }
+
+    void onEnemyDied(int points)
+    {
+        audioSource.PlayOneShot(deathSound);
     }
 }

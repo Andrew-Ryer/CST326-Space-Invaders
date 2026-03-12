@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 // Logic to kill enemy with bullet and tally score
 public class Enemy : MonoBehaviour
@@ -8,7 +9,15 @@ public class Enemy : MonoBehaviour
 
     public static event EnemyDiedFunc onEnemyDied;
     
+    private Animator animator;
+    
     public int score = 10;
+    
+    void Start()
+    {
+        animator = GetComponent<Animator>();
+    }
+    
     void OnCollisionEnter2D(Collision2D collision)
     {
         Debug.Log("Ouch!");
@@ -16,12 +25,19 @@ public class Enemy : MonoBehaviour
         // todo - destroy the bullet
         if (collision.gameObject.layer == LayerMask.NameToLayer("bullet"))
         {
+            // Death animation plays here
             Destroy(collision.gameObject);
-            Destroy(gameObject);
-            
-            // ? means "if null don't do following"
+            animator.SetTrigger("isDead");
+            //audioSource.PlayOneShot(deathSound);
+            //Destroy(gameObject, 1f);
             onEnemyDied?.Invoke(score);
+            StartCoroutine(ResetAfterDelay(1f));
         }
-        // todo - trigger death animation
+    }
+    
+    private IEnumerator ResetAfterDelay(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        Destroy(gameObject);
     }
 }

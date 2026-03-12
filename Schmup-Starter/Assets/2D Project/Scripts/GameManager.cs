@@ -14,12 +14,16 @@ public class GameManager : MonoBehaviour
 
     private int score = 0;
     private int hiScore = 0;
+    
+    AudioSource audioSource;
 
     void Awake()
     {
         //_player = FindFirstObjectByType<Player>();
         // Save Hi-Score for future playthroughs
         hiScore = PlayerPrefs.GetInt(HI_SCORE_KEY, 0);
+        
+        audioSource = GetComponent<AudioSource>();
     }
 
     void OnEnable()

@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // Animate the sprite with discrete steps (Used with Movement Part)
@@ -9,39 +10,40 @@ public class Invader : MonoBehaviour
 
     private SpriteRenderer spriteRenderer;
     private int animationFrame;
+
+    private Animator animator;
+    public AudioClip deathSound;
+    AudioSource audioSource;
     
     public delegate void EnemyDiedFunc(float points);
     public static event EnemyDiedFunc onEnemyDied;
 
     private void Awake()
     {
+        audioSource = GetComponent<AudioSource>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        animator = GetComponent<Animator>();
         spriteRenderer.sprite = animationSprites[0];
     }
-
-    // Just Repeats animation
-    // private void Start()
-    // {
-    //     // Another way to animate
-    //     InvokeRepeating(nameof(AnimateSprite), animationTime, animationTime);
-    // }
     
+    // Uses Discrete Steps
     // Uses Discrete Steps
     public void StepAnimation()
     {
-        AnimateSprite();
+        // Fire exactly once per movement tick (EnemyArray.Step())
+        if (animator != null)
+        {
+            animator.SetTrigger("Step");
+        }
     }
 
-    private void AnimateSprite()
+    // Called by EnemyArray when this invader is chosen to shoot.
+    public void ShootAnimation()
     {
-        animationFrame++;
-
-        // Loop back to the start if the animation frame exceeds the length
-        if (animationFrame >= animationSprites.Length) {
-            animationFrame = 0;
+        if (animator != null)
+        {
+            animator.SetTrigger("Shoot");
         }
-
-        spriteRenderer.sprite = animationSprites[animationFrame];
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -49,9 +51,20 @@ public class Invader : MonoBehaviour
         // Player bullet layer should be named "bullet"
         if (other.gameObject.layer == LayerMask.NameToLayer("bullet"))
         {
+            // Death Audio Plays here
             Destroy(other.gameObject);
-            Destroy(gameObject);
+            animator.SetTrigger("isDead");
+            audioSource.PlayOneShot(deathSound);
+            //Destroy(gameObject, 1f);
             onEnemyDied?.Invoke(score);
+            StartCoroutine(ResetAfterDelay(1f));
         }
+    }
+    
+    // Trying to delay Destroy(object) So Death animation can Play
+    private IEnumerator ResetAfterDelay(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        Destroy(gameObject);
     }
 }
